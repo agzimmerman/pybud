@@ -1,14 +1,14 @@
 import csv
-from datetime import datetime
+from datetime import date
 from pybud.data import Transaction, RecurrenceUnit
 
 
 def __empty(string: str):
-    return string != ''
+    return string == ''
 
 
 def __date(string: str):
-    return datetime.strptime(string, '%y-%m-%d').date()
+    return date.fromisoformat(string)
 
 
 def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
@@ -87,6 +87,10 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
 
 
 def write_transactions_to_csv(transactions: list[Transaction], csv_filepath: str):
+
+    if len(transactions) == 0:
+        return
+
     with open(csv_filepath, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=transactions[0].__dict__.keys())
 
