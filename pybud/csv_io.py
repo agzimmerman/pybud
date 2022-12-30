@@ -27,16 +27,19 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
             if label == '':
                 raise Exception("Label cannot be empty")
 
-            expected_amount = float(row['Expected Amount'])
+            expected_amount_str = row['Expected Amount']
+            if __empty(expected_amount_str):
+                raise Exception("Expected Amount cannot be empty")
+            expected_amount = float(expected_amount_str)
 
             transaction_date_str = row['Date']
             transaction_date = None if __empty(transaction_date_str) else __date(transaction_date_str)
 
             minimum_amount_str = row['Minimum Amount']
-            minimum_amount = None if __empty(minimum_amount_str) else float(minimum_amount_str)
+            minimum_amount = expected_amount if __empty(minimum_amount_str) else float(minimum_amount_str)
 
             maximum_amount_str = row['Maximum Amount']
-            maximum_amount = None if __empty(maximum_amount_str) else float(maximum_amount_str)
+            maximum_amount = expected_amount if __empty(maximum_amount_str) else float(maximum_amount_str)
 
             recurrence_start_date_str = row['Recurrence Start Date']
             recurrence_start_date = None if __empty(recurrence_start_date_str) else __date(recurrence_start_date_str)
