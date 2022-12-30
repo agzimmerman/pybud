@@ -9,6 +9,7 @@ def all_recurring_transactions_to_one_time_transactions(transactions: list[Trans
 
     for transaction in transactions:
         if transaction.recurrence_unit is None or transaction.recurrence_period is None:
+            one_time_transactions.append(transaction)
             continue
         one_time_transactions.extend(recurring_transaction_to_one_time_transactions(transaction, start_date, end_date))
 

@@ -19,7 +19,7 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
 
         for row in reader:
 
-            enabled = row['Enabled'] == 'TRUE'
+            enabled = row['Enabled'] == '1'
             if not enabled:
                 continue
 
@@ -29,7 +29,7 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
 
             expected_amount_str = row['Expected Amount']
             if __empty(expected_amount_str):
-                raise Exception("Expected Amount cannot be empty")
+                continue
             expected_amount = float(expected_amount_str)
 
             transaction_date_str = row['Date']
@@ -68,9 +68,6 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
             if (recurrence_period is not None and recurrence_unit is None) or (recurrence_period is None and recurrence_unit is not None):
                 raise Exception("Recurrence period and unit must both be specified or neither specified")
 
-            recurrence_handoff_id_str = row['Recurrence Handoff ID']
-            recurrence_handoff_id = None if __empty(recurrence_handoff_id_str) else int(recurrence_handoff_id_str)
-
             transactions.append(
                 Transaction(
                     label=label,
@@ -82,7 +79,6 @@ def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
                     recurrence_end_date=recurrence_end_date,
                     recurrence_unit=recurrence_unit,
                     recurrence_period=recurrence_period,
-                    recurrence_handoff_id=recurrence_handoff_id
                 )
             )
 

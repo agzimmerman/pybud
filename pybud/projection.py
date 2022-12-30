@@ -3,7 +3,7 @@ from pybud.data import Transaction
 
 
 def balance_time_history(transactions: list[Transaction]):
-    transactions_dataframe = DataFrame(columns=['Date', 'Expected Amount', 'Minimum Amount', 'Maximum Amount'])
+    transactions_dataframe = DataFrame(columns=['Date', 'Label', 'Expected Amount', 'Minimum Amount', 'Maximum Amount'])
 
     i = -1
     for transaction in transactions:
@@ -11,6 +11,7 @@ def balance_time_history(transactions: list[Transaction]):
 
         transactions_dataframe.loc[i] = Series({
             'Date': transaction.transaction_date,
+            'Label': transaction.label,
             'Expected Amount': transaction.expected_amount,
             'Minimum Amount': transaction.minimum_amount,
             'Maximum Amount': transaction.maximum_amount,
