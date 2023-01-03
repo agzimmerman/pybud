@@ -1,6 +1,7 @@
-import csv
 from datetime import date
-from pybud.data import Transaction, RecurrenceUnit
+from os import remove
+from pandas import DataFrame, read_excel, to_datetime, isnull
+from shutil import copyfile
 
 
 def __empty(string: str):
@@ -11,89 +12,50 @@ def __date(string: str):
     return date.fromisoformat(string)
 
 
-def read_transactions_from_csv(csv_filepath: str) -> list[Transaction]:
-    with open(csv_filepath, newline='') as csvfile:
-        reader = csv.DictReader(csvfile, dialect='excel')
+def read_transactions_dataframe_from_excel(filepath: str) -> DataFrame:
 
-        transactions = []
+    # Have to read a copy instead of the original in case the original is open in Excel which locks the file (also for some reason for reading, not just writing).
+    temp_filepath = filepath.replace('.xlsx', '_pybud_temp_copy.xlsx')
+    copyfile(filepath, temp_filepath)
+    transactions = read_excel(filepath)
+    remove(temp_filepath)
 
-        for row in reader:
+    transactions = transactions.drop(transactions[transactions.enabled != 1].index)
 
-            enabled = row['Enabled'] == '1'
-            if not enabled:
-                continue
+    validate(transactions)
 
-            label = row['Label']
-            if label == '':
-                raise Exception("Label cannot be empty")
+    for column in ['date', 'recurrence_start_date', 'recurrence_end_date']:
+        convert_column_from_timestamp_to_date(transactions, column)
 
-            expected_amount_str = row['Expected Amount']
-            if __empty(expected_amount_str):
-                continue
-            expected_amount = float(expected_amount_str)
+    set_defaults_for_missing_values_inplace(transactions)
 
-            transaction_date_str = row['Date']
-            transaction_date = None if __empty(transaction_date_str) else __date(transaction_date_str)
-
-            minimum_amount_str = row['Minimum Amount']
-            minimum_amount = expected_amount if __empty(minimum_amount_str) else float(minimum_amount_str)
-
-            maximum_amount_str = row['Maximum Amount']
-            maximum_amount = expected_amount if __empty(maximum_amount_str) else float(maximum_amount_str)
-
-            recurrence_start_date_str = row['Recurrence Start Date']
-            recurrence_start_date = None if __empty(recurrence_start_date_str) else __date(recurrence_start_date_str)
-
-            recurrence_end_date_str = row['Recurrence End Date']
-            recurrence_end_date = None if __empty(recurrence_end_date_str) else __date(recurrence_end_date_str)
-
-            recurrence_unit_str = row['Recurrence Unit']
-            if __empty(recurrence_unit_str):
-                recurrence_unit = None
-            else:
-                if recurrence_unit_str == 'Days':
-                    recurrence_unit = RecurrenceUnit.DAYS
-                elif recurrence_unit_str == 'Weeks':
-                    recurrence_unit = RecurrenceUnit.WEEKS
-                elif recurrence_unit_str == 'Months':
-                    recurrence_unit = RecurrenceUnit.MONTHS
-                elif recurrence_unit_str == 'Years':
-                    recurrence_unit = RecurrenceUnit.YEARS
-                else:
-                    raise NotImplementedError(f"Recurrence unit {recurrence_unit_str} not implemented")
-
-            recurrence_period_str = row['Recurrence Period']
-            recurrence_period = None if __empty(recurrence_period_str) else int(recurrence_period_str)
-
-            if (recurrence_period is not None and recurrence_unit is None) or (recurrence_period is None and recurrence_unit is not None):
-                raise Exception("Recurrence period and unit must both be specified or neither specified")
-
-            transactions.append(
-                Transaction(
-                    label=label,
-                    expected_amount=expected_amount,
-                    transaction_date=transaction_date,
-                    minimum_amount=minimum_amount,
-                    maximum_amount=maximum_amount,
-                    recurrence_start_date=recurrence_start_date,
-                    recurrence_end_date=recurrence_end_date,
-                    recurrence_unit=recurrence_unit,
-                    recurrence_period=recurrence_period,
-                )
-            )
-
-        return transactions
+    return transactions
 
 
-def write_transactions_to_csv(transactions: list[Transaction], csv_filepath: str):
+def convert_column_from_timestamp_to_date(transactions: DataFrame, column: str):
 
-    if len(transactions) == 0:
-        return
+    transactions[column] = to_datetime(transactions[column]).dt.date
 
-    with open(csv_filepath, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=transactions[0].__dict__.keys())
 
-        writer.writeheader()
+def set_defaults_for_missing_values_inplace(transactions: DataFrame):
 
-        for transaction in transactions:
-            writer.writerow(transaction.__dict__)
+    for i, transaction in transactions.iterrows():
+
+        if isnull(transaction.minimum_amount):
+            transactions.at[i, 'minimum_amount'] = transaction.expected_amount
+        if isnull(transaction.maximum_amount):
+            transactions.at[i, 'maximum_amount'] = transaction.expected_amount
+
+
+def validate(transactions: DataFrame):
+
+    for _, transaction in transactions.iterrows():
+
+        if isnull(transaction.date):
+            if isnull(transaction.recurrence_unit) or isnull(transaction.recurrence_period):
+                raise ValueError("Date is missing for transaction with label " + transaction.label)
+
+
+def write_transactions_dataframe_to_excel(transactions: DataFrame, filepath: str):
+
+    transactions.to_excel(filepath, index=False)

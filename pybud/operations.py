@@ -1,49 +1,72 @@
-from pybud.data import Transaction
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from pandas import DataFrame, Series, isnull
 
 
-def all_recurring_transactions_to_one_time_transactions(transactions: list[Transaction], start_date: date, end_date: date) -> list[Transaction]:
+def all_recurring_transactions_to_one_time_transactions(
+        transactions: DataFrame,
+        start_date: date,
+        end_date: date
+        ) -> DataFrame:
 
-    one_time_transactions = []
+    one_time_transactions = DataFrame(columns=transactions.keys())
+    i = 0
+    for _, transaction in transactions.iterrows():
 
-    for transaction in transactions:
-        if transaction.recurrence_unit is None or transaction.recurrence_period is None:
-            one_time_transactions.append(transaction)
+        if isnull(transaction.recurrence_unit) or isnull(transaction.recurrence_period):
+            one_time_transactions.loc[i] = transaction
+            i += 1
             continue
-        one_time_transactions.extend(recurring_transaction_to_one_time_transactions(transaction, start_date, end_date))
+
+        for _, one_time_transaction in recurring_transaction_to_one_time_transactions(transaction, start_date, end_date).iterrows():
+            one_time_transactions.loc[i] = one_time_transaction
+            i += 1
 
     return one_time_transactions
 
 
-def recurring_transaction_to_one_time_transactions(recurring_transaction: Transaction, min_first_date: date, max_last_date: date) -> list[Transaction]:
+def recurring_transaction_to_one_time_transactions(
+        recurring_transaction: Series,
+        min_first_date: date,
+        max_last_date: date
+        ) -> DataFrame:
 
-    one_time_transactions = []
+    one_time_transactions = DataFrame(columns=recurring_transaction.keys())
 
-    if recurring_transaction.recurrence_start_date is None or recurring_transaction.recurrence_start_date < min_first_date:
+    if isnull(recurring_transaction.recurrence_start_date) or recurring_transaction.recurrence_start_date < min_first_date:
         first_date = min_first_date
     else:
         first_date = recurring_transaction.recurrence_start_date
 
-    if recurring_transaction.recurrence_end_date is None or recurring_transaction.recurrence_end_date > max_last_date:
-        last_date = max_last_date
+    if isnull(recurring_transaction.recurrence_end_date) or recurring_transaction.recurrence_end_date > max_last_date:
+        final_date = max_last_date
     else:
-        last_date = recurring_transaction.recurrence_end_date
+        final_date = recurring_transaction.recurrence_end_date
 
-    counter = 0
-    while (one_time_transactions[-1].transaction_date if len(one_time_transactions) > 0 else first_date) < last_date:
-        one_time_transactions.append(Transaction(
-            label=recurring_transaction.label + f" Recurrence #{counter}",
-            expected_amount=recurring_transaction.expected_amount,
-            transaction_date=first_date + counter * relativedelta(**{recurring_transaction.recurrence_unit.name.lower(): recurring_transaction.recurrence_period}),
-            minimum_amount=recurring_transaction.minimum_amount,
-            maximum_amount=recurring_transaction.maximum_amount,
-            recurrence_start_date=recurring_transaction.recurrence_start_date,
-            recurrence_end_date=recurring_transaction.recurrence_end_date,
-            recurrence_unit=recurring_transaction.recurrence_unit,
-            recurrence_period=recurring_transaction.recurrence_period,
-            recurrence_handoff_id=recurring_transaction.recurrence_handoff_id
-        ))
-        counter += 1
+    i = 0
+    previous_date = None
+    while True:
+
+        new_date = first_date + i * relativedelta(
+            **{recurring_transaction.recurrence_unit.lower(): recurring_transaction.recurrence_period})
+
+        if previous_date is not None and new_date <= previous_date:
+            raise ValueError("Invalid recurrence date")
+
+        if new_date > final_date:
+            break
+
+        new_transaction = recurring_transaction.copy(deep=True)
+        new_transaction.label = recurring_transaction.label + f" Recurrence #{i}"
+        new_transaction.date = new_date
+        new_transaction.recurrence_start_date = None
+        new_transaction.recurrence_end_date = None
+        new_transaction.recurrence_unit = None
+        new_transaction.recurrence_period = None
+
+        one_time_transactions.loc[i] = new_transaction
+        i += 1
+
+        previous_date = new_date
 
     return one_time_transactions

@@ -1,46 +1,31 @@
 from pandas import DataFrame, Series
-from pybud.data import Transaction
 
 
-def balance_time_history(transactions: list[Transaction]):
-    transactions_dataframe = DataFrame(columns=['Date', 'Label', 'Expected Amount', 'Minimum Amount', 'Maximum Amount'])
+def balance_time_history(transactions: DataFrame):
 
-    i = -1
-    for transaction in transactions:
-        i += 1
+    transactions.sort_values(by=['date'], inplace=True)
 
-        transactions_dataframe.loc[i] = Series({
-            'Date': transaction.transaction_date,
-            'Label': transaction.label,
-            'Expected Amount': transaction.expected_amount,
-            'Minimum Amount': transaction.minimum_amount,
-            'Maximum Amount': transaction.maximum_amount,
-        })
-
-    transactions_dataframe.sort_values(by=['Date'], inplace=True)
-
-    balance_time_history_dataframe = DataFrame(
-        columns=['Date', 'Expected Balance', 'Minimum Balance', 'Maximum Balance'])
+    balance_time_history_dataframe = DataFrame(columns=['date', 'expected_balance', 'minimum_balance', 'maximum_balance'])
 
     minimum_balance = 0
     expected_balance = 0
     maximum_balance = 0
 
     i = -1
-    for index, row in transactions_dataframe.iterrows():
+    for _, row in transactions.iterrows():
         i += 1
 
-        expected_balance += row['Expected Amount']
-        minimum_balance += row['Minimum Amount']
-        maximum_balance += row['Maximum Amount']
+        expected_balance += row.expected_amount
+        minimum_balance += row.minimum_amount
+        maximum_balance += row.maximum_amount
 
-        if i == (len(transactions_dataframe) - 1) or transactions_dataframe.loc[i + 1]['Date'] != row['Date']:
+        if i == (len(transactions) - 1) or transactions.loc[i + 1].date != row.date:
             # Just keep one row for each date which accumulates all transactions on that date.
 
             balance_time_history_dataframe.loc[i] = Series({
-                'Date': row['Date'],
-                'Expected Balance': expected_balance,
-                'Minimum Balance': minimum_balance,
-                'Maximum Balance': maximum_balance})
+                'date': row.date,
+                'expected_balance': expected_balance,
+                'minimum_balance':  minimum_balance,
+                'maximum_balance':  maximum_balance})
 
     return balance_time_history_dataframe
