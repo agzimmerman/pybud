@@ -33,8 +33,8 @@ def recurring_transaction_to_one_time_transactions(
 
     one_time_transactions = DataFrame(columns=recurring_transaction.keys())
 
-    if isnull(recurring_transaction.recurrence_start_date) or recurring_transaction.recurrence_start_date < min_first_date:
-        first_date = min_first_date
+    if isnull(recurring_transaction.recurrence_start_date):
+        first_date = recurring_transaction.date
     else:
         first_date = recurring_transaction.recurrence_start_date
 
@@ -55,6 +55,10 @@ def recurring_transaction_to_one_time_transactions(
 
         if new_date > final_date:
             break
+
+        if new_date < min_first_date:
+            i += 1
+            continue
 
         new_transaction = recurring_transaction.copy(deep=True)
         new_transaction.label = recurring_transaction.label + f" Recurrence #{i}"
