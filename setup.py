@@ -8,8 +8,10 @@ setup(
     name='pybud',
     version=version,
     install_requires=[
+        'matplotlib',
+        'openpyxl',
+        'pandas',
         'python-dateutil',
-        'matplotlib'
     ],
     url='https://github.com/agzimmerman/pybud',
     license='MIT',

@@ -1,8 +1,8 @@
 from pandas import DataFrame
-from matplotlib.pyplot import axes
+from matplotlib.pyplot import axes, Axes
 
 
-def plot_balance_over_time(balance_time_history: DataFrame):
+def plot_balance_over_time(balance_time_history: DataFrame) -> Axes:
 
     color = "steelblue"
 

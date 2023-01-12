@@ -1,5 +1,5 @@
 from datetime import date
-from dateutil.relativedelta import relativedelta
+from matplotlib.pyplot import Figure
 from pandas import DataFrame
 from pybud.csv_io import read_transactions_dataframe_from_excel, write_transactions_dataframe_to_excel
 from pybud.operations import all_recurring_transactions_to_one_time_transactions
@@ -23,10 +23,7 @@ def write(transactions: DataFrame, filepath: str):
     write_transactions_dataframe_to_excel(transactions, filepath)
 
 
-def flatten(transactions: DataFrame, start_date: date = date.today(), end_date: date = None) -> DataFrame:
-
-    if end_date is None:
-        end_date = start_date + relativedelta(years=5)
+def flatten(transactions: DataFrame, start_date: date, end_date: date) -> DataFrame:
 
     return all_recurring_transactions_to_one_time_transactions(
         transactions,
@@ -39,6 +36,6 @@ def project_balance(transactions: DataFrame) -> DataFrame:
     return balance_time_history(transactions)
 
 
-def plot(time_history: DataFrame):
+def plot(time_history: DataFrame) -> Figure:
 
-    return plot_balance_over_time(time_history)
+    return plot_balance_over_time(time_history).figure
