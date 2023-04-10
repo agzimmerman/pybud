@@ -14,6 +14,8 @@ def all_recurring_transactions_to_one_time_transactions(
     for _, transaction in transactions.iterrows():
 
         if isnull(transaction.recurrence_unit) or isnull(transaction.recurrence_period):
+            if transaction.date < start_date:
+                continue
             one_time_transactions.loc[i] = transaction
             i += 1
             continue
