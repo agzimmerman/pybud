@@ -1,6 +1,8 @@
 from pybud.api import read, write, flatten, project_balance, plot
 from datetime import date
 from dateutil.relativedelta import relativedelta
+import matplotlib
+matplotlib.use('TkAgg')
 from matplotlib.pyplot import show
 
 
